@@ -11,4 +11,5 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 class Configuration(object):
     DEBUG = os.environ.get('DEBUG', default=1)
     HOST = os.environ.get('HOST', default='0.0.0.0')
-    SERVER_NAME = f"{HOST}"
+    PORT = os.environ.get('PORT', default=8080)
+    SERVER_NAME = f"{HOST}:{PORT}"
