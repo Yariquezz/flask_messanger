@@ -1,7 +1,7 @@
 import os
-# from dotenv import load_dotenv, find_dotenv
-#
-# load_dotenv(".env")
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(".env")
 
 VIBER_TOKEN = os.environ.get("VIBER_TOKEN")
 WIT_TOKEN = os.environ.get("WIT_TOKEN")
