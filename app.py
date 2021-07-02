@@ -10,6 +10,7 @@ from viberbot.api.viber_requests import ViberFailedRequest
 from viberbot.api.viber_requests import ViberMessageRequest
 from viberbot.api.viber_requests import ViberSubscribedRequest
 from viberbot.api.viber_requests import ViberUnsubscribedRequest
+from viberbot.api.messages import KeyboardMessage
 import logging
 import requests
 import json
@@ -32,6 +33,33 @@ viber = Api(BotConfiguration(
 ))
 url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
+KEYBOARD = {
+    "Type": "keyboard",
+    "Buttons": [
+        {
+            "Columns": 2,
+            "Rows": 1,
+            "BgColor": "#e6f5ff",
+            "BgLoop": True,
+            "ActionType": "reply",
+            "ActionBody": "Привет",
+            "ReplyType": "message",
+            "Text": "Привет"
+        },
+        {
+            "Columns": 2,
+            "Rows": 1,
+            "BgColor": "#e6f5ff",
+            "BgLoop": True,
+            "ActionType": "reply",
+            "ActionBody": "Пока",
+            "ReplyType": "message",
+            "Text": "Пока"
+        },
+
+    ]
+}
+
 
 def wit(message):
     vit = client.message(
@@ -47,6 +75,7 @@ def wit(message):
 
 
 def send_message(chat_id, text):
+    data = None
     if text:
         data = {
             'chat_id': chat_id,
@@ -79,14 +108,21 @@ def send_message(chat_id, text):
 def receive_update():
     if request.method == "POST":
         logger.debug("Got message from telegram: %s" % json.loads(request.data))
+        data = json.loads(request.data)
+
         try:
-            chat_id = request.json["message"]["chat"]["id"]
-            logger.debug("chat_id: %s" % chat_id)
-            message = request.json["message"]["text"]
-            logger.debug("message: %s" % message)
-            response = wit(message)
-            logger.debug("response: %s" % response)
-            send_message(chat_id, response)
+            if 'callback_query' in data:
+                logger.debug("Got data in callback: %s" % data['callback_query']['data'])
+                chat_id = data['callback_query']["message"]["chat"]["id"]
+                message = data['callback_query']['data']
+                response = wit(message)
+                send_message(chat_id, response)
+            elif 'text' in data['message']:
+                logger.debug("Got text in message: %s", data['message']['text'])
+                chat_id = data["message"]["chat"]["id"]
+                message = data["message"]["text"]
+                response = wit(message)
+                send_message(chat_id, response)
         except Exception as e:
             logger.warning("Error receive_update: %s" % e)
 
@@ -109,7 +145,14 @@ def incoming():
         viber.send_messages(
             to=viber_request.sender.id,
             messages=[
-                TextMessage(text=response)
+                TextMessage(
+                    tracking_data='tracking_data',
+                    text=response
+                ),
+                KeyboardMessage(
+                    tracking_data='tracking_data',
+                    keyboard=KEYBOARD,
+                )
             ]
         )
     elif isinstance(viber_request, ViberSubscribedRequest):
